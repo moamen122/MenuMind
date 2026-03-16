@@ -1,38 +1,24 @@
-# MySQL + phpMyAdmin for local development.
-# Run: docker compose up -d   (or: docker-compose up -d)
-# Then: npx prisma migrate dev && npx prisma db seed
-# phpMyAdmin: http://localhost:5050 (user: root, password: root)
+# PostgreSQL for local development (matches Supabase/Production).
+# Run: docker compose up -d
+# Then: npx prisma db push   (or npx prisma migrate dev)
+# Use Supabase DATABASE_URL only in Vercel/production env.
 services:
-  mysql:
-    image: mysql:8.0
+  postgres:
+    image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: menumind
-      MYSQL_USER: menumind
-      MYSQL_PASSWORD: menumind
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: menumind
     ports:
-      - "3306:3306"
+      - "5432:5432"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d menumind"]
       interval: 5s
       timeout: 5s
       retries: 10
 
-  phpmyadmin:
-    image: phpmyadmin:latest
-    restart: unless-stopped
-    environment:
-      PMA_HOST: mysql
-      PMA_PORT: 3306
-      UPLOAD_LIMIT: 64M
-    ports:
-      - "5050:80"
-    depends_on:
-      mysql:
-        condition: service_healthy
-
 volumes:
-  mysql_data:
+  postgres_data:
