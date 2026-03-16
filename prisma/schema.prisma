@@ -1,0 +1,273 @@
+// MenuMind - Production-ready multi-tenant SaaS schema (MariaDB)
+// https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// =============================================================================
+// Enums
+// =============================================================================
+
+enum UserRole {
+  ADMIN
+  OWNER
+  STAFF
+}
+
+enum RestaurantRole {
+  OWNER
+  MANAGER
+  STAFF
+}
+
+enum AnalyticsEventType {
+  IMPRESSION
+  CLICK
+}
+
+// =============================================================================
+// User & multi-tenant access
+// =============================================================================
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  role      UserRole @default(STAFF)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  ownedRestaurants      Restaurant[]         @relation("RestaurantOwner")
+  restaurantMemberships RestaurantMember[]
+  refreshTokens         RefreshToken[]
+
+  @@index([email])
+  @@index([deletedAt])
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  tokenHash String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@index([expiresAt])
+}
+
+model Restaurant {
+  id        String   @id @default(uuid())
+  name      String
+  ownerId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  owner   User              @relation("RestaurantOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  members RestaurantMember[] @relation("RestaurantMembers")
+  menus   Menu[]
+  ingredients Ingredient[]
+  analyticsEvents AnalyticsEvent[]
+  menuViewSessions MenuViewSession[]
+
+  @@index([ownerId])
+  @@index([deletedAt])
+}
+
+model RestaurantMember {
+  id           String         @id @default(uuid())
+  userId       String
+  restaurantId String
+  role         RestaurantRole @default(STAFF)
+  createdAt    DateTime      @default(now())
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  restaurant Restaurant @relation("RestaurantMembers", fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, restaurantId])
+  @@index([restaurantId])
+  @@index([userId])
+}
+
+// =============================================================================
+// Menus & categories
+// =============================================================================
+
+model Menu {
+  id           String   @id @default(uuid())
+  restaurantId String
+  name         String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  deletedAt    DateTime?
+
+  restaurant  Restaurant     @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  categories  MenuCategory[]
+  items       MenuItem[]
+
+  @@index([restaurantId])
+  @@index([deletedAt])
+}
+
+model MenuCategory {
+  id        String   @id @default(uuid())
+  menuId    String
+  name      String
+  sortOrder Int      @default(0) // display order (avoid SQL reserved word "order")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  menu  Menu      @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  items MenuItem[]
+
+  @@index([menuId])
+}
+
+model MenuItem {
+  id          String   @id @default(uuid())
+  menuId      String
+  categoryId  String
+  name        String
+  imageUrl    String?  @db.MediumText
+  description String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  menu          Menu                   @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  category      MenuCategory           @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  sizes         MenuItemSize[]
+  ingredients   MenuItemIngredient[]
+  analyticsEvents AnalyticsEvent[]
+  costEstimate  MenuItemCostEstimate?
+
+  @@index([menuId])
+  @@index([categoryId])
+  @@index([deletedAt])
+}
+
+model MenuItemCostEstimate {
+  id          String   @id @default(uuid())
+  menuItemId  String   @unique
+  dishName    String
+  description String?  @db.Text
+  asOfDate    String   // YYYY-MM-DD – date of the pricing data
+  currency    String   @default("EGP")
+  dataSource  String?  @db.Text
+  ingredients Json     // CostEstimateIngredient[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  menuItem MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+
+  @@index([menuItemId])
+}
+
+
+model MenuItemSize {
+  id         String   @id @default(uuid())
+  menuItemId String
+  name       String   // e.g. "Half Kilo", "Regular", "Large"
+  price      Decimal  @db.Decimal(10, 2)
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  menuItem MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+
+  @@index([menuItemId])
+}
+
+// =============================================================================
+// Ingredients & cost
+// =============================================================================
+
+model Ingredient {
+  id           String   @id @default(uuid())
+  restaurantId String
+  name         String
+  unit         String   // g, kg, ml, piece, etc.
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  deletedAt    DateTime?
+
+  restaurant  Restaurant          @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  menuItemIngredients MenuItemIngredient[]
+
+  @@index([restaurantId])
+  @@index([deletedAt])
+}
+
+model MenuItemIngredient {
+  id          String  @id @default(uuid())
+  menuItemId  String
+  ingredientId String
+  quantity    Decimal @db.Decimal(12, 4)
+  unitPrice   Decimal @db.Decimal(10, 4)
+
+  menuItem   MenuItem   @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  ingredient Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Restrict)
+
+  @@unique([menuItemId, ingredientId])
+  @@index([ingredientId])
+}
+
+// =============================================================================
+// Menu extraction cache (avoid re-calling OpenAI for same input)
+// =============================================================================
+
+model MenuExtractionCache {
+  id        String   @id @default(uuid())
+  cacheKey  String   @unique // "text:" or "image:" + sha256 hash
+  items     Json     // ExtractedMenuItem[]
+  createdAt DateTime @default(now())
+
+  @@index([cacheKey])
+}
+
+// =============================================================================
+// Analytics
+// =============================================================================
+
+model AnalyticsEvent {
+  id           String             @id @default(uuid())
+  restaurantId String
+  menuItemId   String?
+  eventType    AnalyticsEventType
+  sessionId    String
+  createdAt    DateTime           @default(now())
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  menuItem   MenuItem?  @relation(fields: [menuItemId], references: [id], onDelete: SetNull)
+
+  @@index([menuItemId])
+  @@index([restaurantId])
+  @@index([eventType])
+  @@index([createdAt])
+  @@index([sessionId])
+}
+
+model MenuViewSession {
+  id           String   @id @default(uuid())
+  restaurantId String
+  sessionId    String
+  deviceType   String?
+  createdAt    DateTime @default(now())
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@index([restaurantId])
+  @@index([sessionId])
+  @@index([createdAt])
+}

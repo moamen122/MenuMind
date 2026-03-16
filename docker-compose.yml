@@ -1,0 +1,38 @@
+# MySQL + phpMyAdmin for local development.
+# Run: docker compose up -d   (or: docker-compose up -d)
+# Then: npx prisma migrate dev && npx prisma db seed
+# phpMyAdmin: http://localhost:5050 (user: root, password: root)
+services:
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: menumind
+      MYSQL_USER: menumind
+      MYSQL_PASSWORD: menumind
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    restart: unless-stopped
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      UPLOAD_LIMIT: 64M
+    ports:
+      - "5050:80"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+volumes:
+  mysql_data:
