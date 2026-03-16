@@ -19,7 +19,7 @@ export class PrismaService
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       console.error(
-        '[Prisma] Cannot reach database. Please ensure MySQL/MariaDB is running and DATABASE_URL in .env is correct.\n' +
+        '[Prisma] Cannot reach database. Please ensure PostgreSQL (e.g. Supabase) is reachable and DATABASE_URL in .env is correct.\n' +
           '  Error: ' + message
       );
       this._connected = false;

@@ -1,4 +1,4 @@
-// MenuMind - Production-ready multi-tenant SaaS schema (MariaDB)
+// MenuMind - Production-ready multi-tenant SaaS schema (PostgreSQL / Supabase)
 // https://pris.ly/d/prisma-schema
 
 generator client {
@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -139,7 +139,7 @@ model MenuItem {
   menuId      String
   categoryId  String
   name        String
-  imageUrl    String?  @db.MediumText
+  imageUrl    String?  @db.Text
   description String?  @db.Text
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
