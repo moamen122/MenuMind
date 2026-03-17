@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 const PEXELS_SEARCH_URL = 'https://api.pexels.com/v1/search';
@@ -81,10 +81,16 @@ interface PexelsSearchResponse {
 
 @Injectable()
 export class PexelsImageService {
+  private readonly logger = new Logger(PexelsImageService.name);
   private readonly apiKey: string | undefined;
 
   constructor(private readonly config: ConfigService) {
     this.apiKey = this.config.get<string>('PEXELS_API_KEY');
+    if (!this.apiKey?.trim()) {
+      this.logger.warn(
+        'PEXELS_API_KEY is not set — extract-from-image will return items with image: null. Set it in Vercel env for production.',
+      );
+    }
   }
 
   private isRejectedByAlt(alt: string): boolean {

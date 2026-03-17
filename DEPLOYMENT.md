@@ -43,6 +43,7 @@ Set these in your Vercel project → Settings → Environment Variables so the s
 | `DATABASE_URL`     | **Yes**  | Supabase (SSL required): `postgresql://postgres:[YOUR-PASSWORD]@db.utoabuwodxpavrndtzsy.supabase.co:5432/postgres?sslmode=require` — replace `[YOUR-PASSWORD]` with your DB password (Supabase → Project Settings → Database). |
 | `JWT_SECRET`       | **Yes**  | At least 16 characters. Use a long random string in production. |
 | `CORS_ORIGINS`     | Yes*     | `https://menu-smart-analyzer.vercel.app` (your frontend URL). Add multiple origins comma-separated if needed. |
+| `PEXELS_API_KEY`   | Optional | Required for **extract-from-image** to return image URLs per item. Get a key at [Pexels API](https://www.pexels.com/api/). If missing, items will have `image: null` in production. |
 | `FRONTEND_URL`     | Optional | `https://menu-smart-analyzer.vercel.app` — for QR codes and redirects. |
 | `NODE_ENV`         | Optional | `production` |
 

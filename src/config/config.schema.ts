@@ -13,6 +13,7 @@ export const configValidationSchema = Joi.object({
   QR_MENU_BASE_URL: Joi.string().uri().allow('').optional(),
   FRONTEND_URL: Joi.string().uri().allow('').optional(),
   CORS_ORIGINS: Joi.string().allow('').optional(),
+  PEXELS_API_KEY: Joi.string().allow('').optional(),
   RATE_LIMIT_TTL: Joi.number().optional(),
   RATE_LIMIT_MAX: Joi.number().optional(),
 });
