@@ -61,12 +61,14 @@ Right now your tables exist only in **local Docker**. To see them in Supabase (a
 
 ### Option A: From your machine (if Supabase is reachable)
 
-1. In `.env` **temporarily** set:
+1. In `.env` set **both** URLs so migrations use the direct connection (avoids "prepared statement already exists" with the pooler):
    ```env
-   DATABASE_URL=postgresql://postgres:YOUR_SUPABASE_PASSWORD@db.utoabuwodxpavrndtzsy.supabase.co:5432/postgres?sslmode=require&connect_timeout=30
+   DATABASE_URL=postgresql://postgres.PROJECT_REF:PASSWORD@aws-1-eu-central-1.pooler.supabase.com:6543/postgres?pgbouncer=true&sslmode=require
+   DIRECT_URL=postgresql://postgres:YOUR_PASSWORD@db.xxxx.supabase.co:5432/postgres?sslmode=require
    ```
-2. Run: `npx prisma db push`
-3. Switch `.env` back to local: `DATABASE_URL=postgresql://postgres:postgres@localhost:5432/menumind`
+   Replace `db.xxxx.supabase.co` and the password with your Supabase **direct** connection (Supabase → Project Settings → Database → Connection string → **Direct**, port 5432).
+2. Run: `npx prisma migrate deploy` (or `npx prisma db push` if you prefer).
+3. For local dev, set `DATABASE_URL` and `DIRECT_URL` back to `postgresql://postgres:postgres@localhost:5432/menumind`.
 
 If you get **P1001** (can’t reach database), use Option B.
 
@@ -101,6 +103,18 @@ Your network may block Supabase’s direct connection. You can still add the def
 
 3. **Add timeout and SSL** — Use `?sslmode=require&connect_timeout=30` at the end of `DATABASE_URL`.
 4. **Project paused?** — Free-tier projects pause after inactivity; resume in the Supabase dashboard.
+
+### "prepared statement already exists" when running `prisma migrate deploy`
+
+This happens when `DATABASE_URL` points to Supabase’s **pooler** (port 6543). Prisma needs a **direct** connection for migrations.
+
+1. In `.env` add **DIRECT_URL** with the **direct** Supabase connection (port 5432):
+   ```env
+   DIRECT_URL=postgresql://postgres:YOUR_PASSWORD@db.xxxx.supabase.co:5432/postgres?sslmode=require
+   ```
+   Get it from Supabase → Project Settings → Database → Connection string → **Direct** (not Transaction/Session).
+2. Keep `DATABASE_URL` as the pooler URL (port 6543 with `?pgbouncer=true`) for the app.
+3. Run again: `npx prisma migrate deploy`. Prisma will use `DIRECT_URL` for migrations and avoid the error.
 
 ## Extract-from-image returns items with `image: null` in production
 
