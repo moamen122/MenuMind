@@ -8,6 +8,7 @@ import type { INestApplication } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { getCorsOriginOption } from './common/cors.helper';
 import { json, urlencoded } from 'express';
 
 // Use require for express so Vercel/CommonJS gets the callable (no default export interop issue)
@@ -38,9 +39,8 @@ async function createNestApp(expressApp: ReturnType<typeof express>): Promise<IN
   SwaggerModule.setup('api/docs', app, document);
 
   app.use(helmet());
-  const corsOrigins = config.get<string>('CORS_ORIGINS');
   app.enableCors({
-    origin: corsOrigins ? corsOrigins.split(',').map((o) => o.trim()) : false,
+    origin: getCorsOriginOption(config.get<string>('CORS_ORIGINS')),
     credentials: true,
   });
   app.useGlobalFilters(new HttpExceptionFilter());

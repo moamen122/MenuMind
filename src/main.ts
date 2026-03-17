@@ -6,6 +6,7 @@ import { json, urlencoded } from 'express';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { getCorsOriginOption } from './common/cors.helper';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bodyParser: false });
@@ -25,10 +26,9 @@ async function bootstrap() {
   // Security: helmet
   app.use(helmet());
 
-  // CORS
-  const corsOrigins = config.get<string>('CORS_ORIGINS');
+  // CORS: CORS_ORIGINS + any *.vercel.app (preview & production)
   app.enableCors({
-    origin: corsOrigins ? corsOrigins.split(',').map((o) => o.trim()) : false,
+    origin: getCorsOriginOption(config.get<string>('CORS_ORIGINS')),
     credentials: true,
   });
 
