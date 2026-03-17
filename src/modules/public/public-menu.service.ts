@@ -1,5 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../../infrastructure/database/prisma.service';
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { PrismaService } from "../../infrastructure/database/prisma.service";
 
 export interface PublicRestaurant {
   id: string;
@@ -46,17 +46,20 @@ export class PublicMenuService {
       include: {
         menus: {
           where: { deletedAt: null },
-          orderBy: { createdAt: 'desc' },
+          orderBy: { createdAt: "desc" },
           take: 1,
           include: {
-            categories: { orderBy: { sortOrder: 'asc' } },
+            categories: { orderBy: { sortOrder: "asc" } },
             items: {
               where: { deletedAt: null },
               include: {
                 category: true,
-                sizes: { orderBy: { sortOrder: 'asc' } },
+                sizes: { orderBy: { sortOrder: "asc" } },
               },
-              orderBy: [{ category: { sortOrder: 'asc' } }, { createdAt: 'asc' }],
+              orderBy: [
+                { category: { sortOrder: "asc" } },
+                { createdAt: "asc" },
+              ],
             },
           },
         },
@@ -67,8 +70,9 @@ export class PublicMenuService {
       throw new NotFoundException({
         success: false,
         error: {
-          message: 'Menu not found. Check that the restaurant exists and DATABASE_URL points to the correct database.',
-          code: 'NOT_FOUND',
+          message:
+            "Menu not found. Check that the restaurant exists and DATABASE_URL points to the correct database.",
+          code: "NOT_FOUND",
         },
       });
     }
@@ -80,7 +84,7 @@ export class PublicMenuService {
           id: restaurant.id,
           name: restaurant.name,
           logo: restaurant.logo ?? null,
-          currency: restaurant.currency ?? 'EGP',
+          currency: restaurant.currency ?? "EGP",
         },
         categories: [],
         items: [],
@@ -111,14 +115,18 @@ export class PublicMenuService {
           category_id: item.categoryId,
         };
       })
-      .sort((a, b) => (categoryOrder.get(a.category_id) ?? 0) - (categoryOrder.get(b.category_id) ?? 0));
+      .sort(
+        (a, b) =>
+          (categoryOrder.get(a.category_id) ?? 0) -
+          (categoryOrder.get(b.category_id) ?? 0),
+      );
 
     return {
       restaurant: {
         id: restaurant.id,
         name: restaurant.name,
         logo: restaurant.logo ?? null,
-        currency: restaurant.currency ?? 'EGP',
+        currency: restaurant.currency ?? "EGP",
       },
       categories,
       items,
