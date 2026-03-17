@@ -73,6 +73,42 @@ export class RestaurantsService {
       .replace(/^-|-$/g, '') || 'menu';
   }
 
+  /**
+   * Get the single restaurant for this user (user = restaurant). Creates one with default name if none exists.
+   */
+  async getOrCreateForUser(userId: string): Promise<{
+    id: string;
+    name: string;
+    slug: string | null;
+    logo: string | null;
+    currency: string | null;
+    ownerId: string;
+    createdAt: Date;
+    updatedAt: Date;
+  }> {
+    let restaurant = await this.prisma.restaurant.findFirst({
+      where: { ownerId: userId, deletedAt: null },
+      orderBy: { createdAt: 'asc' },
+    });
+    if (!restaurant) {
+      const slug = this.slugify('my-menu');
+      let uniqueSlug = slug;
+      let n = 0;
+      while (await this.prisma.restaurant.findFirst({ where: { slug: uniqueSlug } })) {
+        uniqueSlug = `${slug}-${++n}`;
+      }
+      restaurant = await this.prisma.restaurant.create({
+        data: {
+          name: 'My Menu',
+          slug: uniqueSlug,
+          currency: 'EGP',
+          ownerId: userId,
+        },
+      });
+    }
+    return restaurant;
+  }
+
   async create(dto: CreateRestaurantDto, user: RequestUser) {
     if (user.role !== UserRole.OWNER && user.role !== UserRole.ADMIN) {
       throw new ForbiddenException({

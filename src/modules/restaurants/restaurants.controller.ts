@@ -42,6 +42,13 @@ export class RestaurantsController {
     return this.restaurantsService.create(dto, user);
   }
 
+  @Get('me')
+  @ApiOperation({ summary: 'Get my restaurant (user = restaurant)' })
+  @ApiResponse({ status: 200, description: 'Current user\'s restaurant' })
+  getMyRestaurant(@CurrentUser() user: RequestUser) {
+    return this.restaurantsService.getOrCreateForUser(user.userId);
+  }
+
   @Get()
   @ApiOperation({ summary: 'Get restaurants for logged-in user' })
   @ApiResponse({ status: 200, description: 'List of restaurants' })

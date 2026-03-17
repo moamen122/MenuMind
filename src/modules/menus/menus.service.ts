@@ -24,12 +24,16 @@ export class MenusService {
   ) {}
 
   async create(dto: CreateMenuDto, user: RequestUser) {
-    await this.restaurantsService.assertCanAccessRestaurant(
-      user.userId,
-      dto.restaurantId,
-    );
+    let restaurantId: string;
+    if (dto.restaurantId != null) {
+      await this.restaurantsService.assertCanAccessRestaurant(user.userId, dto.restaurantId);
+      restaurantId = dto.restaurantId;
+    } else {
+      const myRestaurant = await this.restaurantsService.getOrCreateForUser(user.userId);
+      restaurantId = myRestaurant.id;
+    }
     const restaurant = await this.prisma.restaurant.findFirst({
-      where: { id: dto.restaurantId, deletedAt: null },
+      where: { id: restaurantId, deletedAt: null },
     });
     if (!restaurant) {
       throw new NotFoundException({
@@ -39,7 +43,7 @@ export class MenusService {
     }
     return this.prisma.menu.create({
       data: {
-        restaurantId: dto.restaurantId,
+        restaurantId,
         name: dto.name,
       },
     });
@@ -48,14 +52,19 @@ export class MenusService {
   /**
    * Create a menu with all categories and items (sequential writes for Supabase pooler compatibility;
    * $transaction is unreliable with transaction-mode pooler).
+   * When restaurantId is omitted, uses the current user's single restaurant (user = restaurant).
    */
   async createWithItems(dto: CreateMenuWithItemsDto, user: RequestUser) {
-    await this.restaurantsService.assertCanAccessRestaurant(
-      user.userId,
-      dto.restaurantId,
-    );
+    let restaurantId: string;
+    if (dto.restaurantId != null) {
+      await this.restaurantsService.assertCanAccessRestaurant(user.userId, dto.restaurantId);
+      restaurantId = dto.restaurantId;
+    } else {
+      const myRestaurant = await this.restaurantsService.getOrCreateForUser(user.userId);
+      restaurantId = myRestaurant.id;
+    }
     const restaurant = await this.prisma.restaurant.findFirst({
-      where: { id: dto.restaurantId, deletedAt: null },
+      where: { id: restaurantId, deletedAt: null },
     });
     if (!restaurant) {
       throw new NotFoundException({
@@ -70,7 +79,7 @@ export class MenusService {
 
     const menu = await this.prisma.menu.create({
       data: {
-        restaurantId: dto.restaurantId,
+        restaurantId,
         name: dto.name,
       },
     });
@@ -131,6 +140,15 @@ export class MenusService {
     }
 
     return menu;
+  }
+
+  /** Menus for the current user (user = restaurant). */
+  async findMyMenus(user: RequestUser) {
+    const restaurant = await this.restaurantsService.getOrCreateForUser(user.userId);
+    return this.prisma.menu.findMany({
+      where: { restaurantId: restaurant.id, deletedAt: null },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   async findByRestaurant(restaurantId: string, user: RequestUser) {

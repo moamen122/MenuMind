@@ -61,9 +61,10 @@ export class CreateMenuWithItemsItemDto {
 }
 
 export class CreateMenuWithItemsDto {
-  @ApiProperty()
+  @ApiPropertyOptional({ description: 'Omitted when user is the restaurant (single context)' })
+  @IsOptional()
   @IsUUID()
-  restaurantId: string;
+  restaurantId?: string;
 
   @ApiProperty({ example: 'Imported Menu' })
   @IsString()

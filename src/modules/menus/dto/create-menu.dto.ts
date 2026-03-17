@@ -1,10 +1,11 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsUUID, MaxLength, MinLength } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsString, IsNotEmpty, IsUUID, MaxLength, MinLength, IsOptional } from 'class-validator';
 
 export class CreateMenuDto {
-  @ApiProperty()
+  @ApiPropertyOptional({ description: 'Omitted when user is the restaurant (single context)' })
+  @IsOptional()
   @IsUUID()
-  restaurantId: string;
+  restaurantId?: string;
 
   @ApiProperty({ example: 'Lunch Menu' })
   @IsString()

@@ -50,6 +50,13 @@ export class MenusController {
     return this.menusService.createWithItems(dto, user);
   }
 
+  @Get()
+  @ApiOperation({ summary: 'Get my menus (user = restaurant)' })
+  @ApiResponse({ status: 200, description: 'List of menus' })
+  findMyMenus(@CurrentUser() user: RequestUser) {
+    return this.menusService.findMyMenus(user);
+  }
+
   @Get('restaurant/:restaurantId')
   @ApiOperation({ summary: 'Get all menus for a restaurant' })
   @ApiResponse({ status: 200, description: 'List of menus' })
