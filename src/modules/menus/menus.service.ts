@@ -85,7 +85,10 @@ export class MenusService {
 
       const defaultCategoryId =
         categoryIds['General'] ?? Object.values(categoryIds)[0];
-      for (const item of dto.items) {
+
+      const createOneItemWithSizes = async (
+        item: (typeof dto.items)[number],
+      ) => {
         const categoryId =
           categoryIds[item.category?.trim() || ''] ??
           categoryIds['General'] ??
@@ -98,18 +101,21 @@ export class MenusService {
             imageUrl: item.imageUrl ?? null,
           },
         });
-        for (let i = 0; i < item.sizes.length; i++) {
-          const s = item.sizes[i];
-          await this.prisma.menuItemSize.create({
-            data: {
-              menuItemId: created.id,
-              name: s.name.trim(),
-              price: s.price,
-              sortOrder: i,
-            },
-          });
-        }
-      }
+        await Promise.all(
+          item.sizes.map((s, i) =>
+            this.prisma.menuItemSize.create({
+              data: {
+                menuItemId: created.id,
+                name: s.name.trim(),
+                price: s.price,
+                sortOrder: i,
+              },
+            }),
+          ),
+        );
+      };
+
+      await Promise.all(dto.items.map(createOneItemWithSizes));
     } catch (err) {
       await this.prisma.menu.delete({ where: { id: menu.id } }).catch(() => {});
       throw err;
