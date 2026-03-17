@@ -32,16 +32,24 @@ export class ImagesService {
 
   /**
    * Fetch image as buffer. More reliable than streaming in serverless (Vercel).
-   * Uses a browser-like User-Agent so CDNs (Pexels, Unsplash) allow the request.
+   * Uses browser-like headers so CDNs (Pexels, Unsplash) allow the request.
    */
   async fetchImageBuffer(imageUrl: string): Promise<ImageBufferResult | null> {
     try {
-      const res = await fetch(imageUrl, {
-        headers: {
-          Accept: 'image/*',
-          'User-Agent': 'MenuMind/1.0 (https://menu-smart-analyzer.vercel.app)',
-        },
+      const url = imageUrl.trim();
+      const isPexels = url.includes('pexels.com');
+      const isUnsplash = url.includes('unsplash.com');
+      const headers: Record<string, string> = {
+        Accept: 'image/*',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      };
+      if (isPexels) headers['Referer'] = 'https://www.pexels.com/';
+      if (isUnsplash) headers['Referer'] = 'https://unsplash.com/';
+
+      const res = await fetch(url, {
+        headers,
         signal: AbortSignal.timeout(15_000),
+        redirect: 'follow',
       });
       if (!res.ok) return null;
       const contentType = res.headers.get('content-type') || 'image/jpeg';
