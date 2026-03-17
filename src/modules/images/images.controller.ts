@@ -52,6 +52,7 @@ export class ImagesController {
     }
     res.setHeader('Cache-Control', 'public, max-age=86400'); // 24h
     res.setHeader('Content-Type', result.contentType);
-    Readable.fromWeb(result.body as import('stream').web.ReadableStream).pipe(res);
+    // fetch() body is Web ReadableStream; fromWeb() expects it (Node 18+). Cast avoids DOM vs node:stream/web type mismatch.
+    Readable.fromWeb(result.body as Parameters<typeof Readable.fromWeb>[0]).pipe(res);
   }
 }
