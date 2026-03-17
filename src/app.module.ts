@@ -15,6 +15,7 @@ import { AiModule } from './modules/ai/ai.module';
 import { MenuUploadModule } from './modules/menu-upload/menu-upload.module';
 import { QrModule } from './modules/qr/qr.module';
 import { ImagesModule } from './modules/images/images.module';
+import { PublicModule } from './modules/public/public.module';
 import { AppController } from './app.controller';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 
@@ -44,6 +45,7 @@ import { ResponseInterceptor } from './common/interceptors/response.interceptor'
     MenuUploadModule,
     QrModule,
     ImagesModule,
+    PublicModule,
   ],
   providers: [
     {

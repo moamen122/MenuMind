@@ -62,6 +62,17 @@ export class RestaurantsService {
     return restaurant;
   }
 
+  /** Generate URL-safe slug from name (e.g. "Burger House" -> "burger-house") */
+  private slugify(name: string): string {
+    return name
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9-]/g, '')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '') || 'menu';
+  }
+
   async create(dto: CreateRestaurantDto, user: RequestUser) {
     if (user.role !== UserRole.OWNER && user.role !== UserRole.ADMIN) {
       throw new ForbiddenException({
@@ -72,9 +83,18 @@ export class RestaurantsService {
         },
       });
     }
+    const slug = dto.slug?.trim() || this.slugify(dto.name);
+    let uniqueSlug = slug;
+    let n = 0;
+    while (await this.prisma.restaurant.findFirst({ where: { slug: uniqueSlug } })) {
+      uniqueSlug = `${slug}-${++n}`;
+    }
     return this.prisma.restaurant.create({
       data: {
         name: dto.name,
+        slug: uniqueSlug,
+        logo: dto.logo ?? undefined,
+        currency: dto.currency ?? 'EGP',
         ownerId: user.userId,
       },
     });
