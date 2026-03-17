@@ -41,7 +41,8 @@ export class MenusService {
   }
 
   /**
-   * Create a menu with all categories and items in a single transaction (one API call).
+   * Create a menu with all categories and items (sequential writes for Supabase pooler compatibility;
+   * $transaction is unreliable with transaction-mode pooler).
    */
   async createWithItems(dto: CreateMenuWithItemsDto, user: RequestUser) {
     await this.restaurantsService.assertCanAccessRestaurant(
@@ -62,17 +63,17 @@ export class MenusService {
       ...new Set(dto.items.map((i) => i.category?.trim() || 'General')),
     ];
 
-    return this.prisma.$transaction(async (tx) => {
-      const menu = await tx.menu.create({
-        data: {
-          restaurantId: dto.restaurantId,
-          name: dto.name,
-        },
-      });
+    const menu = await this.prisma.menu.create({
+      data: {
+        restaurantId: dto.restaurantId,
+        name: dto.name,
+      },
+    });
 
+    try {
       const categoryIds: Record<string, string> = {};
       for (let i = 0; i < categoryNames.length; i++) {
-        const cat = await tx.menuCategory.create({
+        const cat = await this.prisma.menuCategory.create({
           data: {
             menuId: menu.id,
             name: categoryNames[i],
@@ -89,7 +90,7 @@ export class MenusService {
           categoryIds[item.category?.trim() || ''] ??
           categoryIds['General'] ??
           defaultCategoryId;
-        const created = await tx.menuItem.create({
+        const created = await this.prisma.menuItem.create({
           data: {
             menuId: menu.id,
             categoryId,
@@ -99,7 +100,7 @@ export class MenusService {
         });
         for (let i = 0; i < item.sizes.length; i++) {
           const s = item.sizes[i];
-          await tx.menuItemSize.create({
+          await this.prisma.menuItemSize.create({
             data: {
               menuItemId: created.id,
               name: s.name.trim(),
@@ -109,9 +110,12 @@ export class MenusService {
           });
         }
       }
+    } catch (err) {
+      await this.prisma.menu.delete({ where: { id: menu.id } }).catch(() => {});
+      throw err;
+    }
 
-      return menu;
-    });
+    return menu;
   }
 
   async findByRestaurant(restaurantId: string, user: RequestUser) {
