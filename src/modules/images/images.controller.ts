@@ -1,6 +1,5 @@
 import { Controller, Get, Query, Res, BadRequestException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
-import { Readable } from 'stream';
 import type { Response } from 'express';
 import { ImagesService } from './images.service';
 
@@ -45,14 +44,17 @@ export class ImagesController {
     if (!allowed) {
       throw new BadRequestException({ message: 'URL host not allowed for proxy' });
     }
-    const result = await this.imagesService.fetchImageStream(decoded);
-    if (!result) {
+    try {
+      const result = await this.imagesService.fetchImageBuffer(decoded);
+      if (!result) {
+        res.status(502).json({ message: 'Failed to fetch image' });
+        return;
+      }
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      res.setHeader('Content-Type', result.contentType);
+      res.send(result.buffer);
+    } catch {
       res.status(502).json({ message: 'Failed to fetch image' });
-      return;
     }
-    res.setHeader('Cache-Control', 'public, max-age=86400'); // 24h
-    res.setHeader('Content-Type', result.contentType);
-    // fetch() body is Web ReadableStream; fromWeb() expects it (Node 18+). Cast avoids DOM vs node:stream/web type mismatch.
-    Readable.fromWeb(result.body as Parameters<typeof Readable.fromWeb>[0]).pipe(res);
   }
 }

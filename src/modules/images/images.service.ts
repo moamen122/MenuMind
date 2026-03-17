@@ -5,6 +5,11 @@ export interface ImageStreamResult {
   contentType: string;
 }
 
+export interface ImageBufferResult {
+  buffer: Buffer;
+  contentType: string;
+}
+
 @Injectable()
 export class ImagesService {
   /**
@@ -20,6 +25,25 @@ export class ImagesService {
       if (!res.ok || !res.body) return null;
       const contentType = res.headers.get('content-type') || 'image/jpeg';
       return { body: res.body, contentType };
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Fetch image as buffer. More reliable than streaming in serverless (Vercel).
+   */
+  async fetchImageBuffer(imageUrl: string): Promise<ImageBufferResult | null> {
+    try {
+      const res = await fetch(imageUrl, {
+        headers: { Accept: 'image/*' },
+        signal: AbortSignal.timeout(15_000),
+      });
+      if (!res.ok) return null;
+      const contentType = res.headers.get('content-type') || 'image/jpeg';
+      const arrayBuffer = await res.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      return { buffer, contentType };
     } catch {
       return null;
     }
