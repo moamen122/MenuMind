@@ -2,6 +2,7 @@ import {
   Injectable,
   Logger,
   InternalServerErrorException,
+  BadRequestException,
 } from '@nestjs/common';
 import { createHash } from 'crypto';
 import { AiService } from '../ai/ai.service';
@@ -12,12 +13,14 @@ import type {
 import { PrismaService } from '../../infrastructure/database/prisma.service';
 import { TranslateService } from './translate.service';
 import { PexelsImageService } from './pexels-image.service';
-import { DEFAULT_MENU_ITEMS } from './default-menu-items';
 import {
   normalizeExtractedItems,
   type NormalizedMenuItem,
 } from './normalize-extracted-menu';
 import type { MenuLanguage } from '../ai/providers/ai-provider.interface';
+
+const AI_NO_RESULT_MESSAGE =
+  'OpenAI could not extract menu items. Please check your input and try again, or there may be a temporary issue with the AI service.';
 
 export interface MenuUploadResult {
   menu_language?: MenuLanguage;
@@ -43,13 +46,6 @@ export class MenuUploadService {
       prefix === CACHE_PREFIX_TEXT ? input.trim() : input;
     const hash = createHash('sha256').update(normalized, 'utf8').digest('hex');
     return `${prefix}${hash}`;
-  }
-
-  private withFallback(result: ExtractedMenuResult): ExtractedMenuResult {
-    if (!result?.items?.length) {
-      return { items: DEFAULT_MENU_ITEMS };
-    }
-    return result;
   }
 
   private parseCachedItems(items: unknown): ExtractedMenuItem[] {
@@ -126,15 +122,21 @@ export class MenuUploadService {
     }
 
     const result = await this.aiService.extractMenu(menuText);
-    const withDefault = this.withFallback(result);
-    if (result?.items?.length) {
-      await this.prisma.menuExtractionCache.upsert({
-        where: { cacheKey: key },
-        create: { cacheKey: key, items: result.items as object },
-        update: { items: result.items as object },
+    if (!result?.items?.length) {
+      throw new BadRequestException({
+        success: false,
+        error: {
+          message: AI_NO_RESULT_MESSAGE,
+          code: 'AI_NO_RESULT',
+        },
       });
     }
-    return this.toUploadResult(withDefault);
+    await this.prisma.menuExtractionCache.upsert({
+      where: { cacheKey: key },
+      create: { cacheKey: key, items: result.items as object },
+      update: { items: result.items as object },
+    });
+    return this.toUploadResult(result);
   }
 
   /**
@@ -154,24 +156,36 @@ export class MenuUploadService {
       }
 
       const result = await this.aiService.extractMenuFromImage(imageBase64);
-      const withDefault = this.withFallback(result);
-      if (result?.items?.length) {
-        await this.prisma.menuExtractionCache.upsert({
-          where: { cacheKey: key },
-          create: { cacheKey: key, items: result.items as object },
-          update: { items: result.items as object },
+      if (!result?.items?.length) {
+        throw new BadRequestException({
+          success: false,
+          error: {
+            message: AI_NO_RESULT_MESSAGE,
+            code: 'AI_NO_RESULT',
+          },
         });
       }
-      return this.toUploadResult(withDefault);
+      await this.prisma.menuExtractionCache.upsert({
+        where: { cacheKey: key },
+        create: { cacheKey: key, items: result.items as object },
+        update: { items: result.items as object },
+      });
+      return this.toUploadResult(result);
     } catch (err) {
+      if (err instanceof BadRequestException) throw err;
       const message =
         err instanceof Error ? err.message : 'Extract from image failed';
       this.logger.error(`processImage error: ${message}`, err instanceof Error ? err.stack : undefined);
-      throw new InternalServerErrorException(
-        process.env.NODE_ENV === 'production'
-          ? 'Failed to process image. Please try again.'
-          : message,
-      );
+      throw new InternalServerErrorException({
+        success: false,
+        error: {
+          message:
+            process.env.NODE_ENV === 'production'
+              ? 'OpenAI encountered an issue. Please try again.'
+              : message,
+          code: 'AI_ERROR',
+        },
+      });
     }
   }
 }
