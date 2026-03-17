@@ -1,6 +1,9 @@
 import {
   Injectable,
   NotFoundException,
+  InternalServerErrorException,
+  Logger,
+  HttpException,
 } from '@nestjs/common';
 import { PrismaService } from '../../infrastructure/database/prisma.service';
 import { RestaurantsService } from '../restaurants/restaurants.service';
@@ -13,6 +16,8 @@ import { CreateMenuWithItemsDto } from './dto/create-menu-with-items.dto';
 
 @Injectable()
 export class MenusService {
+  private readonly logger = new Logger(MenusService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly restaurantsService: RestaurantsService,
@@ -86,9 +91,7 @@ export class MenusService {
       const defaultCategoryId =
         categoryIds['General'] ?? Object.values(categoryIds)[0];
 
-      const createOneItemWithSizes = async (
-        item: (typeof dto.items)[number],
-      ) => {
+      for (const item of dto.items) {
         const categoryId =
           categoryIds[item.category?.trim() || ''] ??
           categoryIds['General'] ??
@@ -101,24 +104,30 @@ export class MenusService {
             imageUrl: item.imageUrl ?? null,
           },
         });
-        await Promise.all(
-          item.sizes.map((s, i) =>
-            this.prisma.menuItemSize.create({
-              data: {
-                menuItemId: created.id,
-                name: s.name.trim(),
-                price: s.price,
-                sortOrder: i,
-              },
-            }),
-          ),
-        );
-      };
-
-      await Promise.all(dto.items.map(createOneItemWithSizes));
+        for (let i = 0; i < item.sizes.length; i++) {
+          const s = item.sizes[i];
+          await this.prisma.menuItemSize.create({
+            data: {
+              menuItemId: created.id,
+              name: s.name.trim(),
+              price: s.price,
+              sortOrder: i,
+            },
+          });
+        }
+      }
     } catch (err) {
       await this.prisma.menu.delete({ where: { id: menu.id } }).catch(() => {});
-      throw err;
+      this.logger.warn('createWithItems failed', err instanceof Error ? err.message : err);
+      if (err instanceof HttpException) throw err;
+      const message = err instanceof Error ? err.message : 'Failed to save menu';
+      throw new InternalServerErrorException({
+        success: false,
+        error: {
+          message: process.env.NODE_ENV === 'production' ? 'Failed to save menu. Please try again.' : message,
+          code: 'SAVE_FAILED',
+        },
+      });
     }
 
     return menu;
