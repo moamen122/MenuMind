@@ -137,7 +137,7 @@ async function main() {
   ]);
   console.log('Created ingredients:', ingredients.length);
 
-  // 7. Menu items (5 items) with ingredient relationships
+  // 7. Menu items (5 items) with sizes and ingredient relationships
   const caprese = await prisma.menuItem.upsert({
     where: { id: '00000000-0000-0000-0000-000000000030' },
     update: {},
@@ -146,8 +146,18 @@ async function main() {
       menuId: menu.id,
       categoryId: starters.id,
       name: 'Caprese Salad',
-      price: 8.99,
       description: 'Fresh mozzarella, tomatoes, basil, balsamic glaze',
+    },
+  });
+  await prisma.menuItemSize.upsert({
+    where: { id: '00000000-0000-0000-0000-000000000040' },
+    update: {},
+    create: {
+      id: '00000000-0000-0000-0000-000000000040',
+      menuItemId: caprese.id,
+      name: 'Default',
+      price: 8.99,
+      sortOrder: 0,
     },
   });
   await prisma.menuItemIngredient.upsert({
@@ -189,8 +199,18 @@ async function main() {
       menuId: menu.id,
       categoryId: mains.id,
       name: 'Chicken Pasta',
-      price: 14.99,
       description: 'Grilled chicken breast with penne and tomato sauce',
+    },
+  });
+  await prisma.menuItemSize.upsert({
+    where: { id: '00000000-0000-0000-0000-000000000041' },
+    update: {},
+    create: {
+      id: '00000000-0000-0000-0000-000000000041',
+      menuItemId: chickenPasta.id,
+      name: 'Default',
+      price: 14.99,
+      sortOrder: 0,
     },
   });
   await prisma.menuItemIngredient.upsert({
@@ -232,8 +252,18 @@ async function main() {
       menuId: menu.id,
       categoryId: starters.id,
       name: 'Bruschetta',
-      price: 6.99,
       description: 'Toasted bread with tomato, garlic, and basil',
+    },
+  });
+  await prisma.menuItemSize.upsert({
+    where: { id: '00000000-0000-0000-0000-000000000042' },
+    update: {},
+    create: {
+      id: '00000000-0000-0000-0000-000000000042',
+      menuItemId: bruschetta.id,
+      name: 'Default',
+      price: 6.99,
+      sortOrder: 0,
     },
   });
   await prisma.menuItemIngredient.upsert({
@@ -260,8 +290,18 @@ async function main() {
       menuId: menu.id,
       categoryId: mains.id,
       name: 'Grilled Chicken',
-      price: 16.99,
       description: 'Herb-marinated chicken breast with seasonal vegetables',
+    },
+  });
+  await prisma.menuItemSize.upsert({
+    where: { id: '00000000-0000-0000-0000-000000000043' },
+    update: {},
+    create: {
+      id: '00000000-0000-0000-0000-000000000043',
+      menuItemId: grilledChicken.id,
+      name: 'Default',
+      price: 16.99,
+      sortOrder: 0,
     },
   });
   await prisma.menuItemIngredient.upsert({
@@ -288,8 +328,18 @@ async function main() {
       menuId: menu.id,
       categoryId: mains.id,
       name: 'Tomato Pasta',
-      price: 11.99,
       description: 'Classic penne in fresh tomato and basil sauce',
+    },
+  });
+  await prisma.menuItemSize.upsert({
+    where: { id: '00000000-0000-0000-0000-000000000044' },
+    update: {},
+    create: {
+      id: '00000000-0000-0000-0000-000000000044',
+      menuItemId: tomatoPasta.id,
+      name: 'Default',
+      price: 11.99,
+      sortOrder: 0,
     },
   });
   await prisma.menuItemIngredient.upsert({

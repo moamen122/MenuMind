@@ -331,3 +331,4 @@ ALTER TABLE "AnalyticsEvent" ADD CONSTRAINT "AnalyticsEvent_menuItemId_fkey" FOR
 
 -- AddForeignKey
 ALTER TABLE "MenuViewSession" ADD CONSTRAINT "MenuViewSession_restaurantId_fkey" FOREIGN KEY ("restaurantId") REFERENCES "Restaurant"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+

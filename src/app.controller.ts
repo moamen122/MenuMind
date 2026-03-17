@@ -5,6 +5,15 @@ import { PrismaService } from './infrastructure/database/prisma.service';
 export class AppController {
   constructor(private readonly prisma: PrismaService) {}
 
+  @Get()
+  root() {
+    return {
+      message: 'MenuMind API',
+      health: '/health',
+      docs: '/api/docs',
+    };
+  }
+
   @Get('health')
   health() {
     const dbConnected = this.prisma.isConnected;
