@@ -32,11 +32,15 @@ export class ImagesService {
 
   /**
    * Fetch image as buffer. More reliable than streaming in serverless (Vercel).
+   * Uses a browser-like User-Agent so CDNs (Pexels, Unsplash) allow the request.
    */
   async fetchImageBuffer(imageUrl: string): Promise<ImageBufferResult | null> {
     try {
       const res = await fetch(imageUrl, {
-        headers: { Accept: 'image/*' },
+        headers: {
+          Accept: 'image/*',
+          'User-Agent': 'MenuMind/1.0 (https://menu-smart-analyzer.vercel.app)',
+        },
         signal: AbortSignal.timeout(15_000),
       });
       if (!res.ok) return null;
