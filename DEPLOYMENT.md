@@ -49,6 +49,40 @@ Set these in your Vercel project → Settings → Environment Variables so the s
 
 \* Without `CORS_ORIGINS` including your frontend URL, the browser will block API requests from the deployed frontend.
 
+## No user to log in (User table empty) – local and production
+
+If you see "no user found" or can't log in because the **User** table is empty:
+
+### Option A: Run the seed (when your app can reach the database)
+
+**Local (Docker Postgres):**
+
+```bash
+cd backend
+# .env should have DATABASE_URL=postgresql://postgres:postgres@localhost:5432/menumind
+npm run db:seed
+```
+
+**Production (Supabase):**  
+Set `DATABASE_URL` in `.env` to your Supabase Session pooler URL (same as in Vercel), then run:
+
+```bash
+cd backend
+npm run db:seed
+```
+
+This creates **demo@menumind.com** / **demo123** (OWNER), a demo restaurant, and sample menu data. Use that email and password to log in.
+
+### Option B: Add user via SQL (no DB connection from your PC – e.g. Supabase only)
+
+1. From the `backend` folder run: **`npm run db:seed-sql`**
+2. Copy the printed SQL (starts with `INSERT INTO "User"`).
+3. Open **Supabase Dashboard** → your project → **SQL Editor** → New query.
+4. Paste the SQL and click **Run**.
+5. Log in with **demo@menumind.com** / **demo123**.
+
+Use the same Supabase project that your **Vercel backend** uses (`DATABASE_URL` in Vercel). After adding the user there, both local (if pointed at that Supabase) and production will see the user.
+
 ## Why the function might crash (500 / FUNCTION_INVOCATION_FAILED)
 
 1. **Missing env vars** — If `DATABASE_URL` or `JWT_SECRET` are not set, the app fails at startup. Add them in Vercel and redeploy.
@@ -115,6 +149,14 @@ This happens when `DATABASE_URL` points to Supabase’s **pooler** (port 6543). 
    Get it from Supabase → Project Settings → Database → Connection string → **Direct** (not Transaction/Session).
 2. Keep `DATABASE_URL` as the pooler URL (port 6543 with `?pgbouncer=true`) for the app.
 3. Run again: `npx prisma migrate deploy`. Prisma will use `DIRECT_URL` for migrations and avoid the error.
+
+## QR scan shows "Menu not found"
+
+If scanning the QR code opens the public menu page but it shows "Menu not found":
+
+1. **Same Supabase project on Vercel** — The backend on Vercel must use the **same** `DATABASE_URL` as the Supabase project where you ran migrations and where your restaurant/menus live. In Vercel → backend project → Settings → Environment Variables, set `DATABASE_URL` to your Session pooler URL (e.g. `postgresql://postgres.PROJECT_REF:PASSWORD@aws-1-eu-west-1.pooler.supabase.com:5432/postgres?sslmode=require`). If you use a different project or old URL, the API will not find your restaurant.
+2. **Restaurant has a menu** — The public menu only shows content if the restaurant has at least one menu with items. Create a menu via **Upload Menu** or **Menu Editor** in the app, then scan the QR again.
+3. **Redeploy after env change** — After changing `DATABASE_URL` in Vercel, trigger a redeploy (Deployments → ⋮ → Redeploy) so the backend picks up the new value.
 
 ## Extract-from-image returns items with `image: null` in production
 

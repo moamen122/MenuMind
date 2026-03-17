@@ -63,11 +63,28 @@ export class PublicMenuService {
       },
     });
 
-    if (!restaurant || !restaurant.menus.length) {
+    if (!restaurant) {
       throw new NotFoundException({
         success: false,
-        error: { message: 'Menu not found', code: 'NOT_FOUND' },
+        error: {
+          message: 'Menu not found. Check that the restaurant exists and DATABASE_URL points to the correct database.',
+          code: 'NOT_FOUND',
+        },
       });
+    }
+
+    // Restaurant found but no menus yet: return restaurant with empty categories/items so page can show "No items yet"
+    if (!restaurant.menus.length) {
+      return {
+        restaurant: {
+          id: restaurant.id,
+          name: restaurant.name,
+          logo: restaurant.logo ?? null,
+          currency: restaurant.currency ?? 'EGP',
+        },
+        categories: [],
+        items: [],
+      };
     }
 
     const menu = restaurant.menus[0];
