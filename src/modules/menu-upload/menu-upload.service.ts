@@ -63,40 +63,45 @@ export class MenuUploadService {
    * Attach Pexels image URLs to items. Translation is used ONLY for the image
    * search query when menu_language is "ar" (Pexels works better with English).
    * Item names and categories are never changed—menu language is preserved.
+   * Each item is enriched in a per-item try/catch so one failure does not zero out all images.
    */
   private async enrichWithImages(
     result: ExtractedMenuResult,
   ): Promise<ExtractedMenuResult> {
-    try {
-      const menu_language = result.menu_language;
-      const items = result.items.map((it) => ({
-        ...it,
-        image: (it.image ?? null) as string | null,
-      }));
+    const menu_language = result.menu_language;
+    const items = (result.items ?? []).map((it) => ({
+      ...it,
+      image: (it.image ?? null) as string | null,
+    }));
 
-      for (let i = 0; i < items.length; i++) {
-        const item = items[i];
-        const name = item?.name ?? '';
-        // Translate only for search query; item.name stays in original language
+    const pexelsConfigured = this.pexels.isConfigured();
+    this.logger.log(
+      `Image enrichment: PEXELS_API_KEY configured=${pexelsConfigured}, items=${items.length}`,
+    );
+    if (!pexelsConfigured) {
+      return { menu_language: result.menu_language, items };
+    }
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      const name = item?.name ?? '';
+      try {
         const searchQuery =
           menu_language === 'ar'
             ? await this.translate.translateArToEn(name)
             : name;
         const imageUrl = await this.pexels.searchFirstImageUrl(searchQuery);
         items[i] = { ...item, image: imageUrl ?? null };
+      } catch (err) {
+        this.logger.warn(
+          `Image enrichment failed for item "${name}"`,
+          err instanceof Error ? err.message : err,
+        );
+        items[i] = { ...item, image: null };
       }
-
-      return { menu_language: result.menu_language, items };
-    } catch (err) {
-      this.logger.warn(
-        'Image enrichment failed, returning items without images',
-        err instanceof Error ? err.message : err,
-      );
-      return {
-        menu_language: result.menu_language,
-        items: result.items.map((it) => ({ ...it, image: null })),
-      };
     }
+
+    return { menu_language: result.menu_language, items };
   }
 
   private async toUploadResult(result: ExtractedMenuResult): Promise<MenuUploadResult> {

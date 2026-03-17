@@ -102,6 +102,27 @@ Your network may block Supabase’s direct connection. You can still add the def
 3. **Add timeout and SSL** — Use `?sslmode=require&connect_timeout=30` at the end of `DATABASE_URL`.
 4. **Project paused?** — Free-tier projects pause after inactivity; resume in the Supabase dashboard.
 
+## Extract-from-image returns items with `image: null` in production
+
+If **extract-from-image** (or **extract** from text) returns items but every `image` is `null`:
+
+1. **Set `PEXELS_API_KEY` in the backend project**  
+   Vercel → your **backend** project (e.g. menu-mind-ten) → **Settings** → **Environment Variables** → Add:
+   - **Name:** `PEXELS_API_KEY`
+   - **Value:** your key from [Pexels API](https://www.pexels.com/api/) (same as in `backend/.env` locally)
+   - **Environment:** Production (and Preview if you use it)
+
+2. **Redeploy the backend**  
+   Deployments → ⋮ on latest → **Redeploy**. Env vars apply only after a new deployment.
+
+3. **Confirm it’s the backend project**  
+   The variable must be in the **API/backend** Vercel project, not the frontend. The backend is the one that runs NestJS and calls Pexels.
+
+4. **Check logs**  
+   After redeploy, run extract-from-image again. In Vercel → backend project → **Deployments** → latest → **Functions** → open the serverless function log. You should see either:
+   - `Image enrichment: PEXELS_API_KEY configured=true, items=N` → key is set; if images are still null, Pexels may be rate-limiting or the query may have no results.
+   - `Image enrichment: PEXELS_API_KEY configured=false, items=N` or `PEXELS_API_KEY is not set` → key is missing or not loaded; add it and redeploy.
+
 ## After deploying
 
 - Backend URL: `https://menu-mind-ten.vercel.app`

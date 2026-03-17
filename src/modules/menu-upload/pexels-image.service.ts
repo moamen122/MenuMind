@@ -93,6 +93,11 @@ export class PexelsImageService {
     }
   }
 
+  /** Whether the service can call Pexels (for logging in upload flow). */
+  isConfigured(): boolean {
+    return !!this.apiKey?.trim();
+  }
+
   private isRejectedByAlt(alt: string): boolean {
     const lower = alt.toLowerCase();
     return ALT_REJECT_KEYWORDS.some((keyword) => lower.includes(keyword));
