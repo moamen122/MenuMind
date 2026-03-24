@@ -1,7 +1,8 @@
-# PostgreSQL for local development (matches Supabase/Production).
-# Run: docker compose up -d
-# Then: npx prisma db push   (or npx prisma migrate dev)
-# Use Supabase DATABASE_URL only in Vercel/production env.
+# PostgreSQL for local development only.
+# Database only: docker compose up -d
+# Full stack (API + frontend + this DB): docker compose -f docker-compose.dev.yml up --build
+# Then from backend: npx prisma migrate deploy  (and optional npm run db:seed)
+# Production: use Supabase or managed Postgres; set DATABASE_URL / DIRECT_URL in hosting env (not this file).
 services:
   postgres:
     image: postgres:16-alpine

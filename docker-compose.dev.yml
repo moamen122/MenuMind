@@ -1,0 +1,37 @@
+# Full local stack: includes postgres from docker-compose.yml + Nest API + Vite frontend (nginx).
+# From this folder:
+#   docker compose -f docker-compose.dev.yml up --build
+# First time (Postgres up on localhost:5432): npx prisma migrate deploy
+# Frontend: http://localhost:8080  API: http://localhost:3000  Swagger: http://localhost:3000/api/docs
+
+include:
+  - docker-compose.yml
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/menumind
+      DIRECT_URL: postgresql://postgres:postgres@postgres:5432/menumind
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ../menu-smart-analyzer
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:3000
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:-}
+        VITE_SUPABASE_PUBLISHABLE_KEY: ${VITE_SUPABASE_PUBLISHABLE_KEY:-}
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
