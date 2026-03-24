@@ -13,6 +13,7 @@ import { UpdateMenuDto } from './dto/update-menu.dto';
 import { CreateMenuCategoryDto } from './dto/create-menu-category.dto';
 import { UpdateMenuCategoryDto } from './dto/update-menu-category.dto';
 import { CreateMenuWithItemsDto } from './dto/create-menu-with-items.dto';
+import { ImportMenuItemsDto } from './dto/import-menu-items.dto';
 
 @Injectable()
 export class MenusService {
@@ -111,6 +112,7 @@ export class MenusService {
             categoryId,
             name: item.name,
             imageUrl: item.imageUrl ?? null,
+            description: item.description ?? null,
           },
         });
         for (let i = 0; i < item.sizes.length; i++) {
@@ -140,6 +142,108 @@ export class MenusService {
     }
 
     return menu;
+  }
+
+  /**
+   * Add items to an existing menu, or replace all items (overwrite).
+   * When overwrite is true: deletes all menu items and categories for this menu, then creates categories and items from the payload.
+   * When overwrite is false: creates missing categories by name, then creates all items.
+   */
+  async importItems(menuId: string, dto: ImportMenuItemsDto, user: RequestUser) {
+    const menu = await this.prisma.menu.findFirst({
+      where: { id: menuId, deletedAt: null },
+    });
+    if (!menu) {
+      throw new NotFoundException({
+        success: false,
+        error: { message: 'Menu not found', code: 'NOT_FOUND' },
+      });
+    }
+    await this.restaurantsService.assertCanAccessRestaurant(
+      user.userId,
+      menu.restaurantId,
+    );
+
+    if (dto.overwrite) {
+      const itemIds = await this.prisma.menuItem.findMany({
+        where: { menuId, deletedAt: null },
+        select: { id: true },
+      });
+      for (const { id } of itemIds) {
+        await this.prisma.menuItemSize.deleteMany({ where: { menuItemId: id } });
+      }
+      await this.prisma.menuItem.updateMany({
+        where: { menuId },
+        data: { deletedAt: new Date() },
+      });
+      await this.prisma.menuCategory.deleteMany({ where: { menuId } });
+    }
+
+    const categoryNames = [
+      ...new Set(dto.items.map((i) => i.category?.trim() || 'General')),
+    ];
+    const categoryIds: Record<string, string> = {};
+
+    if (dto.overwrite) {
+      for (let i = 0; i < categoryNames.length; i++) {
+        const cat = await this.prisma.menuCategory.create({
+          data: {
+            menuId,
+            name: categoryNames[i],
+            sortOrder: i,
+          },
+        });
+        categoryIds[cat.name] = cat.id;
+      }
+    } else {
+      const existing = await this.prisma.menuCategory.findMany({
+        where: { menuId },
+        orderBy: { sortOrder: 'asc' },
+      });
+      for (const c of existing) {
+        categoryIds[c.name] = c.id;
+      }
+      let sortOrder = existing.length;
+      for (const name of categoryNames) {
+        if (categoryIds[name]) continue;
+        const cat = await this.prisma.menuCategory.create({
+          data: { menuId, name, sortOrder: sortOrder++ },
+        });
+        categoryIds[cat.name] = cat.id;
+      }
+    }
+
+    const defaultCategoryId =
+      categoryIds['General'] ?? Object.values(categoryIds)[0];
+
+    for (const item of dto.items) {
+      const categoryId =
+        categoryIds[item.category?.trim() || ''] ??
+        categoryIds['General'] ??
+        defaultCategoryId;
+      const created = await this.prisma.menuItem.create({
+        data: {
+          menuId,
+          categoryId,
+          name: item.name,
+          imageUrl: item.imageUrl ?? null,
+          description: item.description ?? null,
+        },
+      });
+      for (let i = 0; i < item.sizes.length; i++) {
+        const s = item.sizes[i];
+        await this.prisma.menuItemSize.create({
+          data: {
+            menuItemId: created.id,
+            name: s.name.trim(),
+            price: s.price,
+            sortOrder: i,
+          },
+        });
+      }
+    }
+
+    return this.findOne(menuId, user);
   }
 
   /** Menus for the current user (user = restaurant). */

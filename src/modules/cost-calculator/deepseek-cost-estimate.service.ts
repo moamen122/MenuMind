@@ -79,7 +79,12 @@ function normalizeIngredient(i: RawIngredient): CostEstimateIngredient {
 export class DeepSeekCostEstimateService {
   constructor(private readonly config: ConfigService) {}
 
-  async getCostEstimate(dishName: string, language?: 'ar' | 'en', size?: string): Promise<CostEstimateResponse> {
+  async getCostEstimate(
+    dishName: string,
+    language?: 'ar' | 'en',
+    size?: string,
+    itemDescription?: string | null,
+  ): Promise<CostEstimateResponse> {
     const apiKey = this.config.get<string>('DEEPSEEK_API_KEY');
     if (!apiKey?.trim()) {
       throw new ServiceUnavailableException(
@@ -131,9 +136,12 @@ OUTPUT:
       ? 'Portion: one standard serving (one person / one typical plate or glass).'
       : `Portion: exactly "${effectiveSize}". Scale all ingredient quantities to this size (e.g. 22oz has more of each ingredient than 16oz).`;
 
-    const userMessage = `Today is ${today}. Item: "${dishName}". Portion: ${sizeInstruction} Language: ${langInstruction}
+    const descriptionPart = itemDescription?.trim()
+      ? ` Description: ${itemDescription.trim()}.`
+      : '';
+    const userMessage = `Today is ${today}. Item: "${dishName}".${descriptionPart} Portion: ${sizeInstruction} Language: ${langInstruction}
 
-First determine the RECIPE for "${dishName}" (what ingredients and how much for this portion). Then assign current EGP market price per liter or per kg to each ingredient. Return only the JSON object.`;
+First determine the RECIPE for "${dishName}" (what ingredients and how much for this portion). Use the description if provided to identify the exact dish and ingredients. Then assign current EGP market price per liter or per kg to each ingredient. Return only the JSON object.`;
 
     const response = await fetch(DEEPSEEK_API_URL, {
       method: 'POST',

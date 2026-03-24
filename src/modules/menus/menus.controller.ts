@@ -23,6 +23,7 @@ import { UpdateMenuDto } from './dto/update-menu.dto';
 import { CreateMenuCategoryDto } from './dto/create-menu-category.dto';
 import { UpdateMenuCategoryDto } from './dto/update-menu-category.dto';
 import { CreateMenuWithItemsDto } from './dto/create-menu-with-items.dto';
+import { ImportMenuItemsDto } from './dto/import-menu-items.dto';
 
 @ApiTags('menus')
 @ApiBearerAuth()
@@ -48,6 +49,18 @@ export class MenusController {
     @CurrentUser() user: RequestUser,
   ) {
     return this.menusService.createWithItems(dto, user);
+  }
+
+  @Post(':menuId/import-items')
+  @ApiOperation({ summary: 'Add or replace items in an existing menu (from image/text extraction)' })
+  @ApiResponse({ status: 200, description: 'Menu with updated items' })
+  @ApiResponse({ status: 404, description: 'Menu not found' })
+  importItems(
+    @Param('menuId') menuId: string,
+    @Body() dto: ImportMenuItemsDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.menusService.importItems(menuId, dto, user);
   }
 
   @Get()

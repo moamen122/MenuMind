@@ -142,7 +142,13 @@ export class CostCalculatorService {
     );
     const dishName = menuItem.name?.trim() || "Dish";
     const portionSize = size?.trim() || "Regular";
-    const estimate = await this.deepSeekCostEstimateService.getCostEstimate(dishName, language, portionSize);
+    const itemDescription = menuItem.description?.trim() || null;
+    const estimate = await this.deepSeekCostEstimateService.getCostEstimate(
+      dishName,
+      language,
+      portionSize,
+      itemDescription,
+    );
     await this.prisma.menuItemCostEstimate.upsert({
       where: { menuItemId },
       create: {

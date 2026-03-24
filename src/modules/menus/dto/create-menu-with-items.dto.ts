@@ -58,6 +58,12 @@ export class CreateMenuWithItemsItemDto {
   @IsString()
   @MaxLength(500_000)
   imageUrl?: string;
+
+  @ApiPropertyOptional({ description: 'Item description from menu (optional)' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  description?: string;
 }
 
 export class CreateMenuWithItemsDto {

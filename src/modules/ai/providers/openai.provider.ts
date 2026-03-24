@@ -75,7 +75,7 @@ Output format (clean JSON only):
     }
   ]
 }
-- name: exact text from menu in its original language (e.g. Arabic stays Arabic). size: portion/size if present (e.g. "1/2 kg") or null. price: number only (EGP). category: section name in original language. description: optional, or null. image: always null.`;
+- name: exact text from menu in its original language (e.g. Arabic stays Arabic). size: portion/size if present (e.g. "1/2 kg") or null. price: number only (EGP). category: section name in original language. description: if the menu lists a description or details for the item (e.g. ingredients, how it's prepared), copy it; otherwise null. image: always null.`;
 
     try {
       const response = await client.chat.completions.create({
@@ -125,7 +125,8 @@ Rules:
    - If the menu has columns like 1/2 K.G, 1/3 K.G, 1/4 K.G: create one item per size with the same name, size set to that column (e.g. "1/2 K.G", "1/4 K.G") and the corresponding price.
    - If an item has a single price with no size, set size to null.
    - Items with one price per row (e.g. half chicken, quarter chicken) get one item each; use the portion as size if shown (e.g. "نصف فرخة") or null.
-7. Return ONLY valid JSON, no explanation or markdown. Include every item from every section.
+7. Description: if the menu shows a description or details for an item (e.g. ingredients, preparation, serving), copy it into "description"; otherwise null.
+8. Return ONLY valid JSON, no explanation or markdown. Include every item from every section.
 
 Output format (clean JSON only):
 {
