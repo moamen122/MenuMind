@@ -39,15 +39,16 @@ describe('Auth (e2e)', () => {
         .send(testUser)
         .expect(201)
         .expect((res) => {
-          expect(res.body).toHaveProperty('accessToken');
-          expect(res.body).toHaveProperty('refreshToken');
-          expect(res.body.user).toMatchObject({
+          const d = res.body.data;
+          expect(d).toHaveProperty('accessToken');
+          expect(d).toHaveProperty('refreshToken');
+          expect(d.user).toMatchObject({
             email: testUser.email,
             role: 'STAFF',
           });
-          expect(res.body.user).toHaveProperty('id');
-          accessToken = res.body.accessToken;
-          refreshToken = res.body.refreshToken;
+          expect(d.user).toHaveProperty('id');
+          accessToken = d.accessToken;
+          refreshToken = d.refreshToken;
         });
     });
 
@@ -70,11 +71,12 @@ describe('Auth (e2e)', () => {
         .send(testUser)
         .expect(200)
         .expect((res) => {
-          expect(res.body).toHaveProperty('accessToken');
-          expect(res.body).toHaveProperty('refreshToken');
-          expect(res.body.user.email).toBe(testUser.email);
-          accessToken = res.body.accessToken;
-          refreshToken = res.body.refreshToken;
+          const d = res.body.data;
+          expect(d).toHaveProperty('accessToken');
+          expect(d).toHaveProperty('refreshToken');
+          expect(d.user.email).toBe(testUser.email);
+          accessToken = d.accessToken;
+          refreshToken = d.refreshToken;
         });
     });
 
@@ -103,9 +105,10 @@ describe('Auth (e2e)', () => {
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200)
         .expect((res) => {
-          expect(res.body.email).toBe(testUser.email);
-          expect(res.body).toHaveProperty('id');
-          expect(res.body).toHaveProperty('role');
+          const d = res.body.data;
+          expect(d.email).toBe(testUser.email);
+          expect(d).toHaveProperty('id');
+          expect(d).toHaveProperty('role');
         });
     });
   });
@@ -117,10 +120,11 @@ describe('Auth (e2e)', () => {
         .send({ refreshToken })
         .expect(200)
         .expect((res) => {
-          expect(res.body).toHaveProperty('accessToken');
-          expect(res.body).toHaveProperty('refreshToken');
-          refreshToken = res.body.refreshToken;
-          accessToken = res.body.accessToken;
+          const d = res.body.data;
+          expect(d).toHaveProperty('accessToken');
+          expect(d).toHaveProperty('refreshToken');
+          refreshToken = d.refreshToken;
+          accessToken = d.accessToken;
         });
     });
 

@@ -31,7 +31,7 @@ export class MockAiProvider implements IAiProvider {
     ];
 
     const categories = new Set<string>();
-    let fallbackCategory = 'Main';
+    const fallbackCategory = 'Main';
 
     for (const line of lines) {
       let name = '';
@@ -104,9 +104,8 @@ export class MockAiProvider implements IAiProvider {
     return { menu_language: 'en', items: [] };
   }
 
-  async suggestIngredients(dishName: string): Promise<SuggestIngredientsResult> {
+  async suggestIngredients(_dishName: string): Promise<SuggestIngredientsResult> {
     // Simple mock: return a few generic ingredients so the feature works in tests
-    const name = dishName.trim().toLowerCase() || 'dish';
     const ingredients = [
       { name: 'ingredient 1', quantity: '100g' },
       { name: 'ingredient 2', quantity: '50g' },

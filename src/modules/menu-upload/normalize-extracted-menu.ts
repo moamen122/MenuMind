@@ -53,7 +53,7 @@ function detectSizeName(text: string | null | undefined): string | null {
     if (pattern.test(t)) return sizeName;
   }
   // If the whole text looks like a size (e.g. "1/2 K.G"), use it as-is (cleaned)
-  if (/^[\d\/\s.]*(kilo|kg|k\.?g\.?|كيلو)?$/i.test(t) || /^(small|medium|large|s|m|l)$/i.test(t)) {
+  if (/^[\d/\s.]*(kilo|kg|k\.?g\.?|كيلو)?$/i.test(t) || /^(small|medium|large|s|m|l)$/i.test(t)) {
     return t;
   }
   return null;
@@ -98,8 +98,6 @@ export interface NormalizedMenuItem {
  * If no size is detected, use "Regular".
  */
 export function normalizeExtractedItems(flat: ExtractedMenuItem[]): NormalizedMenuItem[] {
-  const groupKeyToItems = new Map<string, ExtractedMenuItem[]>();
-
   type Entry = { item: ExtractedMenuItem; sizeName: string };
   const groupKeyToEntries = new Map<string, Entry[]>();
 
