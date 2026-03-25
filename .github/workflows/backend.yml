@@ -67,6 +67,8 @@ jobs:
     name: Docker image
     runs-on: ubuntu-latest
     needs: test
+    # Required so DOCKERHUB_* secrets attached to the "menumind" environment are available
+    environment: menumind
     steps:
       - uses: actions/checkout@v4
 
@@ -80,6 +82,20 @@ jobs:
           context: .
           push: false
           tags: menumind-backend:ci
+
+      - name: Check Docker Hub secrets
+        if: github.event_name == 'push'
+        run: |
+          ok=0
+          if [ -z "${{ secrets.DOCKERHUB_USERNAME }}" ]; then
+            echo "::error::DOCKERHUB_USERNAME is missing or empty. Add it as a repository secret, or as an environment secret on the same environment as this job (environment: menumind)."
+            ok=1
+          fi
+          if [ -z "${{ secrets.DOCKERHUB_TOKEN }}" ]; then
+            echo "::error::DOCKERHUB_TOKEN is missing or empty. Create a token at https://hub.docker.com/settings/security and add it as a repository or environment secret (exact name: DOCKERHUB_TOKEN)."
+            ok=1
+          fi
+          exit $ok
 
       - name: Log in to Docker Hub
         if: github.event_name == 'push'
